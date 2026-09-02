@@ -8,6 +8,7 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 from pydantic import BaseModel
@@ -25,6 +26,19 @@ def _auth_headers(config: ProviderConfig) -> dict[str, str]:
 
 def _join(base_url: str, path: str) -> str:
     return f"{base_url.rstrip('/')}/{path.lstrip('/')}"
+
+
+async def _test_ark_connection(config: ProviderConfig) -> None:
+    parts = urlsplit(config.base_url)
+    if parts.scheme not in {"http", "https"} or not parts.netloc:
+        raise ProviderError("火山方舟 API 地址无效")
+    ping_url = f"{parts.scheme}://{parts.netloc}/ping"
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.get(ping_url, headers=_auth_headers(config))
+    if response.is_error:
+        raise ProviderError(
+            f"火山方舟连接失败 ({response.status_code}): {response.text[:500]}"
+        )
 
 
 def _extract_json(text: str) -> dict[str, Any]:
@@ -249,6 +263,7 @@ class ArkImageProvider(ImageProvider):
     async def test(self) -> None:
         if not self.config.base_url or not self.config.model or not self.config.api_key:
             raise ProviderError("请填写火山方舟地址、Seedream 模型 ID 和 API Key")
+        await _test_ark_connection(self.config)
 
 
 class MiniMaxImageProvider(ImageProvider):
@@ -349,6 +364,7 @@ class SeedanceVideoProvider(VideoProvider):
     async def test(self) -> None:
         if not self.config.api_key or not self.config.model:
             raise ProviderError("请填写 Seedance Endpoint/模型 ID 和 API Key")
+        await _test_ark_connection(self.config)
 
 
 class MiniMaxVideoProvider(VideoProvider):

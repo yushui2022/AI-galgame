@@ -42,6 +42,10 @@ async def test_http_provider_submit_poll_failure_timeout_and_download(
     async def image_file():  # type: ignore[no-untyped-def]
         return Response(content=b"fake-png", media_type="image/png")
 
+    @fake.get("/ping")
+    async def ark_ping():  # type: ignore[no-untyped-def]
+        return Response(content="pong", media_type="text/plain")
+
     @fake.post("/contents/generations/tasks")
     async def submit_video():  # type: ignore[no-untyped-def]
         return {"id": "video-task"}
@@ -132,6 +136,7 @@ async def test_http_provider_submit_poll_failure_timeout_and_download(
             "image": ["data:image/png;base64,ZmFrZQ=="],
         }
     ]
+    await ark_provider.test()
 
     video_provider = SeedanceVideoProvider(
         ProviderConfig(
@@ -151,6 +156,7 @@ async def test_http_provider_submit_poll_failure_timeout_and_download(
         )
     )
     succeeded = await video_provider.poll(queued)
+    await video_provider.test()
     assert succeeded.status == "succeeded"
     assert succeeded.result_url == "http://fake/files/video.mp4"
 
