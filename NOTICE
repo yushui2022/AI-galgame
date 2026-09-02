@@ -1,0 +1,10 @@
+AI-galgame
+Copyright 2026 AI-galgame contributors
+
+The multi-agent visual-novel production roles and selected prompt-design ideas
+are inspired by AI4VisualNovel (Apache License 2.0):
+https://github.com/ttsmallHot/AI4VisualNovel
+
+The layered-memory architecture is an independent implementation inspired by
+public concepts used by role-play frontends. No SillyTavern source code is
+included in this repository.
