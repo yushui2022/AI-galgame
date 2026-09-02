@@ -21,10 +21,28 @@ const disabledProviders = {
   embedding: null
 };
 
-async function unlockCurrentMedia(page: import("@playwright/test").Page) {
-  const skip = page.getByRole("button", { name: /跳过镜头/ });
-  if (await skip.isVisible()) await skip.click();
-  await expect(page.getByLabel("或者，亲自决定下一步")).toBeEnabled();
+async function reachDecision(page: import("@playwright/test").Page) {
+  const decision = page.getByRole("region", { name: "选择下一步" });
+  const dialogue = page.getByRole("button", { name: /显示完整对白|继续剧情/ });
+
+  // Wait for the newly-created turn to replace the previous decision panel.
+  await expect(dialogue).toBeVisible();
+
+  for (let attempt = 0; attempt < 16 && !(await decision.isVisible().catch(() => false)); attempt += 1) {
+    if (await dialogue.isVisible().catch(() => false)) {
+      await dialogue.click({ force: true, timeout: 800 }).catch(() => undefined);
+      await page.waitForTimeout(250);
+    } else {
+      const skip = page.getByRole("button", { name: "跳过演出" });
+      if (await skip.isVisible().catch(() => false)) {
+        await skip.click().catch(() => undefined);
+      }
+      await page.waitForTimeout(150);
+    }
+  }
+
+  await expect(decision).toBeVisible();
+  await expect(dialogue).toBeHidden();
 }
 
 test("首次设置向导要求三个供应商测试通过", async ({ page }) => {
@@ -72,32 +90,36 @@ test("示例故事支持选项、自由输入、媒体跳过、分叉和画像�
   await expect(page.getByRole("heading", { name: "故事会记住你的选择。" })).toBeVisible();
 
   await page.getByRole("button", { name: /进入雨夜/ }).click();
-  await expect(page.getByText("第 1 幕")).toBeVisible();
-  await unlockCurrentMedia(page);
+  await expect(page.getByText("第 1 幕", { exact: true })).toBeVisible();
+  await reachDecision(page);
   await expect(page.getByRole("button", { name: /把短信内容告诉林澄/ })).toBeEnabled();
 
   await page.getByRole("button", { name: /把短信内容告诉林澄/ }).click();
-  await expect(page.getByText("第 2 幕")).toBeVisible({ timeout: 20_000 });
-  await unlockCurrentMedia(page);
+  await expect(page.getByText("第 2 幕", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await reachDecision(page);
 
+  await page.getByRole("button", { name: "自定义行动" }).click();
   await page.getByLabel("或者，亲自决定下一步").fill("检查窗台上有没有留下脚印");
   await page.getByRole("button", { name: "提交自由行动" }).click();
-  await expect(page.getByText("第 3 幕")).toBeVisible({ timeout: 20_000 });
-  await unlockCurrentMedia(page);
+  await expect(page.getByText("第 3 幕", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await reachDecision(page);
 
-  await page.getByRole("button", { name: "分支", exact: true }).click();
+  await page.getByRole("button", { name: "打开暂停菜单" }).click();
+  await page.getByRole("button", { name: /故事分支/ }).click();
   await expect(page.getByRole("heading", { name: "故事分支" })).toBeVisible();
   await page.getByRole("button", { name: "从这里创建分支" }).first().click();
   await expect(page.getByRole("heading", { name: "故事分支" })).toBeHidden();
-  await page.getByRole("button", { name: "分支", exact: true }).click();
+  await page.getByRole("button", { name: "打开暂停菜单" }).click();
+  await page.getByRole("button", { name: /故事分支/ }).click();
   await expect(page.locator(".branch-switcher button")).toHaveCount(2);
   await page.getByRole("button", { name: "关闭" }).click();
 
-  await page.getByRole("button", { name: "玩家画像" }).click();
+  await page.getByRole("button", { name: "打开暂停菜单" }).click();
+  await page.getByRole("button", { name: /玩家画像/ }).click();
   await page.getByLabel("给系统的备注").fill("偏好慢热悬疑，不要快速揭晓真相");
   await page.getByRole("button", { name: /保存画像/ }).click();
   await expect(page.getByText("画像已保存")).toBeVisible();
 
   await page.reload();
-  await expect(page.getByText("第 3 幕")).toBeVisible();
+  await expect(page.getByText("第 3 幕", { exact: true })).toBeVisible();
 });

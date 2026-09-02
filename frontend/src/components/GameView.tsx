@@ -3,13 +3,19 @@ import {
   ArrowLeft as ArrowLeftIcon,
   ArrowRight as ArrowRightIcon,
   ArrowsClockwise as ArrowsClockwiseIcon,
+  CaretRight as CaretRightIcon,
+  ChatCircleDots as ChatCircleDotsIcon,
+  DotsThreeOutline as DotsThreeOutlineIcon,
+  GearSix as GearSixIcon,
   GitBranch as GitBranchIcon,
+  House as HouseIcon,
   ImageSquare as ImageSquareIcon,
   PaperPlaneTilt as PaperPlaneTiltIcon,
-  Sparkle as SparkleIcon,
   SkipForward as SkipForwardIcon,
+  Sparkle as SparkleIcon,
   UploadSimple as UploadSimpleIcon,
   UserFocus as UserFocusIcon,
+  UsersThree as UsersThreeIcon,
   X as XIcon
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -21,6 +27,14 @@ interface GameViewProps {
   onBack: () => void;
   onGameChanged: () => void;
   onOpenProfile: () => void;
+  onOpenSettings: () => void;
+}
+
+interface ScriptLine {
+  speaker: string;
+  text: string;
+  emotion?: string;
+  narration?: boolean;
 }
 
 function latestAsset(turn: Turn | undefined, kind: "image" | "video") {
@@ -31,7 +45,13 @@ function isPlayableVideo(url: string | null | undefined) {
   return Boolean(url && /\.(mp4|webm|mov)(?:\?|$)/i.test(url));
 }
 
-export function GameView({ game, onBack, onGameChanged, onOpenProfile }: GameViewProps) {
+export function GameView({
+  game,
+  onBack,
+  onGameChanged,
+  onOpenProfile,
+  onOpenSettings
+}: GameViewProps) {
   const [branches, setBranches] = useState<Branch[]>(game.branches);
   const [branchId, setBranchId] = useState<string | null>(
     game.branches.find((branch) => !branch.archived)?.id ?? null
@@ -39,13 +59,20 @@ export function GameView({ game, onBack, onGameChanged, onOpenProfile }: GameVie
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const [freeText, setFreeText] = useState("");
+  const [freeInputOpen, setFreeInputOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [charactersOpen, setCharactersOpen] = useState(false);
   const [uploadingCharacter, setUploadingCharacter] = useState<string | null>(null);
   const [generatingCharacters, setGeneratingCharacters] = useState(false);
   const [branchName, setBranchName] = useState("");
+  const [scriptIndex, setScriptIndex] = useState(0);
+  const [visibleChars, setVisibleChars] = useState(0);
+  const [videoFailed, setVideoFailed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const reduceMotion = useReducedMotion();
+
   const activeBranches = useMemo(() => branches.filter((branch) => !branch.archived), [branches]);
   const archivedBranches = useMemo(() => branches.filter((branch) => branch.archived), [branches]);
   const selectedBranch = branches.find((branch) => branch.id === branchId) ?? null;
@@ -78,7 +105,7 @@ export function GameView({ game, onBack, onGameChanged, onOpenProfile }: GameVie
     const refresh = () => void refreshTurns();
     const events = ["turn.created", "media.image_ready", "media.video_ready", "media.failed", "turn.unlocked"];
     events.forEach((event) => source.addEventListener(event, refresh));
-    source.onerror = () => setError("进度连接暂时中断，页面仍会保留当前存档");
+    source.onerror = () => setError("进度连接暂时中断，存档仍然安全，可以稍后刷新页面");
     return () => {
       events.forEach((event) => source.removeEventListener(event, refresh));
       source.close();
@@ -88,20 +115,66 @@ export function GameView({ game, onBack, onGameChanged, onOpenProfile }: GameVie
   const current = turns.at(-1);
   const image = latestAsset(current, "image");
   const video = latestAsset(current, "video");
-  const showVideo = isPlayableVideo(video?.url);
+  const shouldPlayVideo = Boolean(
+    current && !current.unlocked && !videoFailed && isPlayableVideo(video?.url)
+  );
+
+  const scriptLines = useMemo<ScriptLine[]>(() => {
+    if (!current) return [];
+    return [
+      ...(current.narrative
+        ? [{ speaker: "旁白", text: current.narrative, narration: true } satisfies ScriptLine]
+        : []),
+      ...current.dialogue.map((line) => ({
+        speaker: line.speaker,
+        text: line.text,
+        emotion: line.emotion
+      }))
+    ];
+  }, [current]);
+
+  const scriptComplete = scriptIndex >= scriptLines.length;
+  const activeLine = scriptComplete ? null : scriptLines[scriptIndex];
+  const lineComplete = Boolean(activeLine && visibleChars >= activeLine.text.length);
+  const decisionReady = Boolean(current?.unlocked && scriptComplete);
 
   useEffect(() => {
-    if (!current || current.unlocked || current.media_status !== "ready" || showVideo) return;
+    setScriptIndex(0);
+    setVisibleChars(0);
+    setFreeInputOpen(false);
+    setVideoFailed(false);
+  }, [current?.id]);
+
+  useEffect(() => {
+    if (!activeLine) return;
+    if (reduceMotion) {
+      setVisibleChars(activeLine.text.length);
+      return;
+    }
+    setVisibleChars(0);
+    const timer = window.setInterval(() => {
+      setVisibleChars((count) => {
+        const next = Math.min(count + 1, activeLine.text.length);
+        if (next >= activeLine.text.length) window.clearInterval(timer);
+        return next;
+      });
+    }, activeLine.narration ? 24 : 30);
+    return () => window.clearInterval(timer);
+  }, [activeLine?.narration, activeLine?.text, reduceMotion]);
+
+  useEffect(() => {
+    if (!current || current.unlocked || current.media_status !== "ready" || shouldPlayVideo) return;
     const timer = window.setTimeout(() => {
       void api.completeMedia(current.id).then(refreshTurns);
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [current, refreshTurns, showVideo]);
+  }, [current, refreshTurns, shouldPlayVideo]);
 
   const submit = async (inputType: "suggested" | "free_text", text: string, choiceId?: string) => {
     if (!branchId || !current || busy) return;
     setBusy(true);
     setError(null);
+    setFreeInputOpen(false);
     try {
       const result = await api.submitTurn(branchId, {
         input_type: inputType,
@@ -117,6 +190,27 @@ export function GameView({ game, onBack, onGameChanged, onOpenProfile }: GameVie
     } finally {
       setBusy(false);
     }
+  };
+
+  const advanceScript = () => {
+    if (!activeLine) return;
+    if (!lineComplete) {
+      setVisibleChars(activeLine.text.length);
+      return;
+    }
+    setScriptIndex((index) => Math.min(index + 1, scriptLines.length));
+  };
+
+  const skipMedia = async () => {
+    if (!current) return;
+    await api.skipMedia(current.id);
+    await refreshTurns();
+  };
+
+  const retryMedia = async () => {
+    if (!current) return;
+    await api.retryMedia(current.id);
+    await refreshTurns();
   };
 
   const forkAt = async (turn: Turn) => {
@@ -179,14 +273,14 @@ export function GameView({ game, onBack, onGameChanged, onOpenProfile }: GameVie
   const stageMessage = useMemo(() => {
     if (!current) return "正在读取存档";
     const messages: Record<string, string> = {
-      queued: "导演正在整理这一幕",
-      generating_image: "正在生成场景画面",
-      generating_video: "正在让画面动起来",
-      retrying: "生成遇到波动，正在自动重试",
-      failed: "媒体生成失败，可以重试或跳过",
+      queued: "故事正在回应你的选择",
+      generating_image: "光影与人物正在进入这一幕",
+      generating_video: "时间开始在画面里流动",
+      retrying: "这一幕正在重新形成",
+      failed: "这一幕暂时无法显现",
       ready: "镜头已经就绪"
     };
-    return messages[current.media_status] ?? "正在准备下一幕";
+    return messages[current.media_status] ?? "下一幕正在形成";
   }, [current]);
 
   const uploadReference = async (file: File) => {
@@ -217,189 +311,224 @@ export function GameView({ game, onBack, onGameChanged, onOpenProfile }: GameVie
 
   return (
     <motion.section
-      className="game-page"
+      className="game-page game-cinematic"
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <header className="game-topbar">
-        <div className="game-nav-left">
-          <button className="icon-button" type="button" onClick={onBack} aria-label="返回故事库">
-            <ArrowLeftIcon size={21} />
-          </button>
-          <div className="game-title">
-            <span>{game.genre}</span>
-            <strong>{game.title}</strong>
-          </div>
+      <div className="game-world" aria-label={current?.scene ?? "故事场景"}>
+        <AnimatePresence mode="wait">
+          {shouldPlayVideo && video?.url ? (
+            <motion.video
+              className="game-world-media"
+              key={video.id}
+              src={video.url}
+              autoPlay
+              muted
+              playsInline
+              disablePictureInPicture
+              controlsList="nodownload noplaybackrate noremoteplayback"
+              onEnded={() => current && void api.completeMedia(current.id).then(refreshTurns)}
+              onError={() => setVideoFailed(true)}
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+          ) : image?.url ? (
+            <motion.img
+              className="game-world-media"
+              key={image.id}
+              src={image.url}
+              alt={current?.scene ?? "当前剧情场景"}
+              initial={reduceMotion ? false : { opacity: 0, scale: 1.025 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            />
+          ) : (
+            <motion.div className="game-world-empty" key="empty-world" initial={false} animate={{ opacity: 1 }}>
+              <div className="world-glow" />
+              <ImageSquareIcon size={34} weight="light" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <div className="game-world-vignette" />
+        <div className="game-world-grain" />
+      </div>
+
+      <header className="game-hud">
+        <button className="game-hud-button" type="button" onClick={onBack} aria-label="返回故事库">
+          <ArrowLeftIcon size={20} />
+        </button>
+        <div className="game-hud-title">
+          <span>第 {current ? current.turn_index + 1 : "—"} 幕</span>
+          <strong>{game.title}</strong>
         </div>
-        <div className="game-nav-actions">
-          <button className="text-button" type="button" onClick={() => setTimelineOpen(true)}>
-            <GitBranchIcon size={19} />
-            分支
-          </button>
-          <button className="icon-button" type="button" onClick={onOpenProfile} aria-label="玩家画像">
-            <UserFocusIcon size={21} />
-          </button>
-        </div>
+        <div className="game-hud-scene">{current?.scene ?? "载入中"}</div>
+        <button
+          className="game-hud-button"
+          type="button"
+          onClick={() => setMenuOpen(true)}
+          aria-label="打开暂停菜单"
+        >
+          <DotsThreeOutlineIcon size={23} weight="fill" />
+        </button>
       </header>
 
-      <div className="game-layout">
-        <section className="media-column">
-          <div className="media-stage">
-            <AnimatePresence mode="wait">
-              {showVideo && video?.url ? (
-                <motion.video
-                  key={video.id}
-                  src={video.url}
-                  autoPlay
-                  playsInline
-                  controls
-                  onEnded={() => current && void api.completeMedia(current.id).then(refreshTurns)}
-                  initial={reduceMotion ? false : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                />
-              ) : image?.url ? (
-                <motion.img
-                  key={image.id}
-                  src={image.url}
-                  alt={current?.scene ?? "当前剧情场景"}
-                  initial={reduceMotion ? false : { opacity: 0, scale: 1.01 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                />
-              ) : (
-                <motion.div key="empty-stage" className="stage-placeholder" initial={false} animate={{ opacity: 1 }}>
-                  <div className="scene-skeleton" />
-                  <ImageSquareIcon size={34} weight="light" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <div className="stage-scrim" />
-            <div className="stage-status">
-              <span>{current?.scene ?? "载入中"}</span>
-              {!current?.unlocked && <p>{stageMessage}</p>}
-            </div>
-          </div>
+      {!current || (!current.unlocked && !shouldPlayVideo && current.media_status !== "ready") ? (
+        <div className="forming-state" aria-live="polite">
+          <span className="forming-mark"><i /><i /><i /></span>
+          <strong>{stageMessage}</strong>
+          <small>你可以先阅读这一幕，画面完成后会自动接入</small>
+        </div>
+      ) : null}
 
-          <div className="character-strip" aria-label="角色参考形象">
-            {game.characters.map((character) => (
-              <button
-                key={character.id}
-                type="button"
-                className="character-chip"
-                onClick={() => {
-                  setUploadingCharacter(character.id);
-                  fileInputRef.current?.click();
-                }}
-                title="上传角色参考图"
-              >
-                {character.reference_image_url ? (
-                  <img src={character.reference_image_url} alt={character.name} />
-                ) : (
-                  <span>{character.name.slice(0, 1)}</span>
-                )}
-                <div>
-                  <strong>{character.name}</strong>
-                  <small>{character.role}</small>
-                </div>
-                <UploadSimpleIcon size={17} />
-              </button>
-            ))}
-            {game.characters.some((character) => !character.reference_image_url) && (
-              <button
-                className="character-generate"
-                type="button"
-                disabled={generatingCharacters}
-                onClick={() => void generateReferences()}
-              >
-                <SparkleIcon size={18} />
-                {generatingCharacters ? "正在生成" : "生成缺失参考图"}
-              </button>
-            )}
-            <input
-              ref={fileInputRef}
-              className="visually-hidden"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void uploadReference(file);
-              }}
+      {current && !current.unlocked && current.media_status !== "failed" && (
+        <button className="scene-skip" type="button" onClick={() => void skipMedia()}>
+          <SkipForwardIcon size={16} />
+          跳过演出
+        </button>
+      )}
+
+      {current?.media_status === "failed" && (
+        <div className="scene-failed" role="alert">
+          <div>
+            <strong>这一幕没有成功显现</strong>
+            <span>剧情存档没有丢失，可以重新生成或直接继续。</span>
+          </div>
+          <button type="button" onClick={() => void retryMedia()}>
+            <ArrowsClockwiseIcon size={17} />重新生成
+          </button>
+          <button type="button" onClick={() => void skipMedia()}>继续剧情</button>
+        </div>
+      )}
+
+      <main className="game-performance">
+        <AnimatePresence mode="wait">
+          {current && activeLine && (
+            <motion.button
+              className={activeLine.narration ? "vn-dialogue narration" : "vn-dialogue"}
+              key={`${current.id}-${scriptIndex}`}
+              type="button"
+              onClick={advanceScript}
+              aria-label={lineComplete ? "继续剧情" : "显示完整对白"}
+              initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+            >
+              <span className="vn-speaker">
+                {activeLine.speaker}
+                {activeLine.emotion && <small>{activeLine.emotion}</small>}
+              </span>
+              <span className="vn-line">{activeLine.text.slice(0, visibleChars)}</span>
+              <span className={lineComplete ? "vn-continue ready" : "vn-continue"}>
+                <CaretRightIcon size={18} weight="bold" />
+              </span>
+              <span className="vn-progress" aria-hidden="true">
+                {scriptLines.map((_, index) => <i className={index <= scriptIndex ? "active" : ""} key={index} />)}
+              </span>
+            </motion.button>
+          )}
+
+          {current && scriptComplete && !current.unlocked && current.media_status !== "failed" && (
+            <motion.div
+              className="vn-waiting"
+              key="waiting-for-scene"
+              initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <span className="forming-mark compact"><i /><i /><i /></span>
+              <div>
+                <strong>{stageMessage}</strong>
+                <small>镜头结束后，选择才会出现</small>
+              </div>
+            </motion.div>
+          )}
+
+          {current && decisionReady && (
+            <DecisionPanel
+              key={`${current.id}-decision`}
+              choices={current.choices}
+              freeText={freeText}
+              setFreeText={setFreeText}
+              freeInputOpen={freeInputOpen}
+              setFreeInputOpen={setFreeInputOpen}
+              busy={busy}
+              onChoice={(choice) => void submit("suggested", choice.text, choice.id)}
+              onFree={() => void submit("free_text", freeText)}
             />
-          </div>
-        </section>
+          )}
+        </AnimatePresence>
+      </main>
 
-        <section className="story-column">
-          {!current ? (
-            <div className="story-loading">
-              <div className="text-skeleton wide" />
-              <div className="text-skeleton" />
-              <div className="text-skeleton short" />
-            </div>
-          ) : (
-            <AnimatePresence mode="wait">
-              <motion.article
-                key={current.id}
-                className="story-beat"
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-              >
-                <div className="turn-label">第 {current.turn_index + 1} 幕</div>
-                <p className="narrative">{current.narrative}</p>
-                <div className="dialogue-list">
-                  {current.dialogue.map((line, index) => (
-                    <div className="dialogue-line" key={`${line.speaker}-${index}`}>
-                      <span>{line.speaker}</span>
-                      <p>{line.text}</p>
-                    </div>
-                  ))}
+      <AnimatePresence>
+        {busy && (
+          <motion.div
+            className="story-forming-curtain"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <span className="forming-mark"><i /><i /><i /></span>
+            <strong>你的选择正在改变故事</strong>
+            <small>正在判断行动、续写人物与整理下一幕</small>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {error && (
+        <div className="game-toast" role="alert">
+          <span>{error}</span>
+          <button type="button" onClick={() => setError(null)} aria-label="关闭错误">
+            <XIcon size={17} />
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {menuOpen && (
+          <div className="game-pause-backdrop" role="presentation" onMouseDown={() => setMenuOpen(false)}>
+            <motion.aside
+              className="game-pause-menu"
+              role="dialog"
+              aria-modal="true"
+              aria-label="暂停菜单"
+              initial={reduceMotion ? false : { opacity: 0, scale: 0.96, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <header>
+                <div>
+                  <span>PAUSED</span>
+                  <h2>{game.title}</h2>
                 </div>
-
-                {!current.unlocked ? (
-                  <div className="locked-actions">
-                    <p>{stageMessage}</p>
-                    <div>
-                      {current.media_status === "failed" && (
-                        <button className="button secondary" type="button" onClick={() => void api.retryMedia(current.id)}>
-                          <ArrowsClockwiseIcon size={18} />
-                          重新生成
-                        </button>
-                      )}
-                      <button
-                        className="button ghost"
-                        type="button"
-                        onClick={() => void api.skipMedia(current.id).then(refreshTurns)}
-                      >
-                        <SkipForwardIcon size={18} />
-                        跳过镜头
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <ChoicePanel
-                    choices={current.choices}
-                    freeText={freeText}
-                    setFreeText={setFreeText}
-                    busy={busy}
-                    onChoice={(choice) => void submit("suggested", choice.text, choice.id)}
-                    onFree={() => void submit("free_text", freeText)}
-                  />
-                )}
-              </motion.article>
-            </AnimatePresence>
-          )}
-          {error && (
-            <div className="story-error">
-              <span>{error}</span>
-              <button type="button" onClick={() => setError(null)} aria-label="关闭错误">
-                <XIcon size={17} />
-              </button>
-            </div>
-          )}
-        </section>
-      </div>
+                <button type="button" onClick={() => setMenuOpen(false)} aria-label="继续游戏">
+                  <XIcon size={20} />
+                </button>
+              </header>
+              <nav>
+                <button type="button" onClick={() => { setMenuOpen(false); setTimelineOpen(true); }}>
+                  <GitBranchIcon size={21} /><span><strong>故事分支</strong><small>查看时间线或从过去继续</small></span><CaretRightIcon />
+                </button>
+                <button type="button" onClick={() => { setMenuOpen(false); onOpenProfile(); }}>
+                  <UserFocusIcon size={21} /><span><strong>玩家画像</strong><small>查看系统记住的偏好</small></span><CaretRightIcon />
+                </button>
+                <button type="button" onClick={() => { setMenuOpen(false); setCharactersOpen(true); }}>
+                  <UsersThreeIcon size={21} /><span><strong>角色设定</strong><small>管理角色参考形象</small></span><CaretRightIcon />
+                </button>
+                <button type="button" onClick={onOpenSettings}>
+                  <GearSixIcon size={21} /><span><strong>模型设置</strong><small>更换剧情与媒体 Provider</small></span><CaretRightIcon />
+                </button>
+                <button type="button" onClick={onBack}>
+                  <HouseIcon size={21} /><span><strong>返回故事库</strong><small>当前进度已自动保存</small></span><CaretRightIcon />
+                </button>
+              </nav>
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {timelineOpen && (
@@ -439,9 +568,7 @@ export function GameView({ game, onBack, onGameChanged, onOpenProfile }: GameVie
                     <input value={branchName} onChange={(event) => setBranchName(event.target.value)} />
                   </label>
                   <div>
-                    <button className="button secondary" type="button" onClick={() => void renameSelectedBranch()}>
-                      保存名称
-                    </button>
+                    <button className="button secondary" type="button" onClick={() => void renameSelectedBranch()}>保存名称</button>
                     <button
                       className="button ghost"
                       type="button"
@@ -484,53 +611,163 @@ export function GameView({ game, onBack, onGameChanged, onOpenProfile }: GameVie
           </div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {charactersOpen && (
+          <div className="drawer-backdrop" role="presentation" onMouseDown={() => setCharactersOpen(false)}>
+            <motion.aside
+              className="character-drawer"
+              initial={reduceMotion ? false : { x: 40, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 40, opacity: 0 }}
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <header>
+                <div>
+                  <h2>角色设定</h2>
+                  <p>参考形象只用于保持后续场景中的角色一致性。</p>
+                </div>
+                <button className="icon-button" type="button" onClick={() => setCharactersOpen(false)} aria-label="关闭">
+                  <XIcon size={20} />
+                </button>
+              </header>
+              <div className="character-manager-list">
+                {game.characters.map((character) => (
+                  <article key={character.id}>
+                    {character.reference_image_url ? (
+                      <img src={character.reference_image_url} alt={`${character.name}的参考形象`} />
+                    ) : (
+                      <span>{character.name.slice(0, 1)}</span>
+                    )}
+                    <div>
+                      <strong>{character.name}</strong>
+                      <small>{character.role}</small>
+                      <p>{character.personality || character.appearance || "尚未补充角色细节"}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadingCharacter(character.id);
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      <UploadSimpleIcon size={17} />
+                      {character.reference_image_url ? "替换" : "上传"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+              {game.characters.some((character) => !character.reference_image_url) && (
+                <button
+                  className="button primary character-generate-action"
+                  type="button"
+                  disabled={generatingCharacters}
+                  onClick={() => void generateReferences()}
+                >
+                  <SparkleIcon size={18} />
+                  {generatingCharacters ? "正在生成参考形象" : "生成缺失参考形象"}
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                className="visually-hidden"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void uploadReference(file);
+                }}
+              />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.section>
   );
 }
 
-interface ChoicePanelProps {
+interface DecisionPanelProps {
   choices: Choice[];
   freeText: string;
   setFreeText: (value: string) => void;
+  freeInputOpen: boolean;
+  setFreeInputOpen: (value: boolean) => void;
   busy: boolean;
   onChoice: (choice: Choice) => void;
   onFree: () => void;
 }
 
-function ChoicePanel({ choices, freeText, setFreeText, busy, onChoice, onFree }: ChoicePanelProps) {
+function DecisionPanel({
+  choices,
+  freeText,
+  setFreeText,
+  freeInputOpen,
+  setFreeInputOpen,
+  busy,
+  onChoice,
+  onFree
+}: DecisionPanelProps) {
   return (
-    <div className="choice-panel">
-      <div className="choice-list">
+    <motion.section
+      className="decision-panel"
+      aria-label="选择下一步"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+    >
+      <header>
+        <span>YOUR DECISION</span>
+        <h2>你准备怎么做？</h2>
+      </header>
+      <div className="decision-list">
         {choices.map((choice, index) => (
           <button key={choice.id} type="button" disabled={busy} onClick={() => onChoice(choice)}>
-            <span>{index + 1}</span>
+            <span>0{index + 1}</span>
             <strong>{choice.text}</strong>
-            <ArrowRightIcon size={18} />
+            <ArrowRightIcon size={20} />
           </button>
         ))}
       </div>
-      <form
-        className="free-input"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (freeText.trim()) onFree();
-        }}
+      <button
+        className={freeInputOpen ? "custom-action active" : "custom-action"}
+        type="button"
+        onClick={() => setFreeInputOpen(!freeInputOpen)}
+        aria-expanded={freeInputOpen}
       >
-        <label htmlFor="free-action">或者，亲自决定下一步</label>
-        <div>
-          <input
-            id="free-action"
-            value={freeText}
-            onChange={(event) => setFreeText(event.target.value)}
-            placeholder="描述你想尝试的行动"
-            maxLength={1000}
-          />
-          <button type="submit" disabled={busy || !freeText.trim()} aria-label="提交自由行动">
-            <PaperPlaneTiltIcon size={20} weight="fill" />
-          </button>
-        </div>
-      </form>
-      {busy && <p className="generation-note">故事正在回应你的选择</p>}
-    </div>
+        <ChatCircleDotsIcon size={19} />
+        自定义行动
+        <small>不受选项限制</small>
+      </button>
+      <AnimatePresence>
+        {freeInputOpen && (
+          <motion.form
+            className="free-action-form"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (freeText.trim()) onFree();
+            }}
+          >
+            <label htmlFor="free-action">或者，亲自决定下一步</label>
+            <div>
+              <textarea
+                id="free-action"
+                value={freeText}
+                onChange={(event) => setFreeText(event.target.value)}
+                placeholder="描述你想尝试的行动……"
+                maxLength={1000}
+                rows={2}
+                autoFocus
+              />
+              <button type="submit" disabled={busy || !freeText.trim()} aria-label="提交自由行动">
+                <PaperPlaneTiltIcon size={20} weight="fill" />
+              </button>
+            </div>
+          </motion.form>
+        )}
+      </AnimatePresence>
+    </motion.section>
   );
 }

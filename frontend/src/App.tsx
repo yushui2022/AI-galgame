@@ -123,6 +123,10 @@ export function App() {
               if (!refreshed) setView("home");
             }}
             onOpenProfile={() => setProfileOpen(true)}
+            onOpenSettings={() => {
+              window.history.pushState({}, "", "/");
+              setView("setup");
+            }}
           />
         )}
       </AnimatePresence>
