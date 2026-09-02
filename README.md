@@ -6,7 +6,6 @@
 
 一个把 **用户选择、长期记忆、Agent 编排、图片生成与视频生成** 连接起来的开源 AI 原生互动内容引擎。
 
-[![CI](https://github.com/yushui2022/AI-galgame/actions/workflows/ci.yml/badge.svg)](https://github.com/yushui2022/AI-galgame/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache--2.0-5b8def.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-19-20232a.svg?logo=react&logoColor=61DAFB)](https://react.dev/)
