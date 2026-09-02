@@ -1,9 +1,14 @@
 import { useState } from "react";
 import {
   ArrowRight as ArrowRightIcon,
+  ArrowUpRight as ArrowUpRightIcon,
   BookOpenText as BookOpenTextIcon,
+  FilmSlate as FilmSlateIcon,
   GearSix as GearSixIcon,
+  ImageSquare as ImageSquareIcon,
+  Play as PlayIcon,
   Plus as PlusIcon,
+  Sparkle as SparkleIcon,
   UserFocus as UserFocusIcon,
   X as XIcon
 } from "@phosphor-icons/react";
@@ -96,86 +101,120 @@ export function HomeView({
 
   return (
     <motion.section
-      className="library-page"
+      className="library-page library-premium"
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <header className="topbar">
+      <header className="topbar library-topbar">
         <div className="brand-lockup">
           <div className="brand-mark">A</div>
-          <span>AI Galgame</span>
+          <div>
+            <span>AI Galgame</span>
+            <small>GENERATIVE STORY SYSTEM</small>
+          </div>
         </div>
         <nav>
-          <button className="icon-button" type="button" onClick={onOpenProfile} aria-label="玩家画像">
+          <span className="engine-online"><i />故事引擎就绪</span>
+          <button className="library-nav-button" type="button" onClick={onOpenProfile} aria-label="玩家画像">
             <UserFocusIcon size={22} />
+            <span>偏好</span>
           </button>
-          <button className="icon-button" type="button" onClick={onOpenSettings} aria-label="模型设置">
+          <button className="library-nav-button" type="button" onClick={onOpenSettings} aria-label="模型设置">
             <GearSixIcon size={22} />
+            <span>模型</span>
           </button>
         </nav>
       </header>
 
-      <div className="library-intro">
-        <p className="eyebrow">你的故事库</p>
-        <h1>故事会记住你的选择。</h1>
-        <p>选择一个旧故事继续，或者从一次心动开始创造新的校园回忆。</p>
-      </div>
-
-      <div className="starter-grid">
-        <article className="template-feature">
-          <div className="template-visual" aria-hidden="true">
-            <span className="spring-petal one" />
-            <span className="spring-petal two" />
-            <span className="spring-petal three" />
-            <span className="spring-light" />
-            <div className="template-title">春日心动</div>
-          </div>
-          <div className="template-copy">
-            <span>校园恋爱</span>
-            <h2>樱花落下之前</h2>
-            <p>从新学期的第一声早安开始，在社团、放学路和文化祭里，与喜欢的人慢慢靠近。</p>
-            <button className="button primary" type="button" disabled={creating} onClick={() => void createTemplate()}>
+      <section className="library-hero" aria-labelledby="library-title">
+        <img
+          className="library-hero-image"
+          src="/images/romance-library-hero.png"
+          alt="春日校园门口，抱着摄影集的少女站在樱花树下"
+        />
+        <div className="library-hero-scrim" />
+        <div className="library-hero-copy">
+          <p className="eyebrow">Generative visual novel</p>
+          <h1 id="library-title" aria-label="故事会记住你的选择。">故事会记住<br aria-hidden="true" />你的选择。</h1>
+          <p>剧情、关系与镜头都在你做出决定后继续生长。没有预设路线，也不需要等待整章生成。</p>
+          <div className="library-hero-actions">
+            <button className="button primary hero-primary" type="button" disabled={creating} onClick={() => void createTemplate()}>
+              <PlayIcon size={18} weight="fill" />
               {creating ? "正在创建" : "开始心动"}
-              <ArrowRightIcon size={18} />
+            </button>
+            <button className="hero-text-action" type="button" onClick={() => setCustomOpen(true)}>
+              从一个想法开始
+              <ArrowUpRightIcon size={18} />
             </button>
           </div>
-        </article>
-
-        <button className="custom-starter" type="button" onClick={() => setCustomOpen(true)}>
-          <PlusIcon size={30} weight="light" />
-          <strong>自由创建</strong>
-          <span>输入世界、角色和画风</span>
-        </button>
-      </div>
-
-      <section className="saved-section">
-        <div className="section-heading">
-          <h2>继续游玩</h2>
-          <span>{games.length} 个世界</span>
-        </div>
-        {games.length === 0 ? (
-          <div className="empty-state">
-            <BookOpenTextIcon size={34} weight="light" />
-            <p>还没有保存的故事。就从樱花树下的第一次相遇开始吧。</p>
+          <div className="engine-capabilities" aria-label="故事引擎能力">
+            <span><SparkleIcon size={17} />实时续写</span>
+            <span><ImageSquareIcon size={17} />场景生成</span>
+            <span><FilmSlateIcon size={17} />动态镜头</span>
           </div>
-        ) : (
-          <div className="game-list">
-            {games.map((game) => (
-              <button key={game.id} className="game-row" type="button" onClick={() => onOpenGame(game.id)}>
-                <div>
+        </div>
+        <div className="featured-story-label">
+          <span>推荐开场 · 01</span>
+          <strong>樱花落下之前</strong>
+          <small>校园恋爱 / 春日 / 慢热</small>
+        </div>
+      </section>
+
+      <section className="saved-section premium-shelf">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">Your library</p>
+            <h2>继续你的故事</h2>
+          </div>
+          <span>{games.length} 个存档</span>
+        </div>
+        <div className="story-shelf-grid">
+          {games.length === 0 ? (
+            <div className="empty-state premium-empty">
+              <BookOpenTextIcon size={32} weight="light" />
+              <div>
+                <strong>还没有正在生长的故事</strong>
+                <p>从上面的推荐开场开始，第一段记忆会自动保存在这里。</p>
+              </div>
+            </div>
+          ) : (
+            games.map((game, index) => (
+              <button key={game.id} className="story-card" type="button" onClick={() => onOpenGame(game.id)}>
+                <div className="story-card-media">
+                  <img
+                    src={index % 2 === 0 ? "/images/romance-library-hero.png" : "/images/romance-custom-rooftop.png"}
+                    alt=""
+                    aria-hidden="true"
+                  />
                   <span>{game.genre}</span>
+                  <ArrowUpRightIcon size={20} />
+                </div>
+                <div className="story-card-copy">
                   <strong>{game.title}</strong>
                   <p>{game.premise}</p>
-                </div>
-                <div className="game-row-meta">
-                  <span>{game.branches.filter((branch) => !branch.archived).length} 条分支</span>
-                  <ArrowRightIcon size={20} />
+                  <div>
+                    <span>{game.branches.filter((branch) => !branch.archived).length} 条故事线</span>
+                    <span>继续游玩 <ArrowRightIcon size={15} /></span>
+                  </div>
                 </div>
               </button>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+
+          <button className="story-card create-story-card" type="button" onClick={() => setCustomOpen(true)}>
+            <div className="story-card-media">
+              <img src="/images/romance-custom-rooftop.png" alt="" aria-hidden="true" />
+              <span>自由创作</span>
+              <PlusIcon size={21} />
+            </div>
+            <div className="story-card-copy">
+              <strong>从一个念头开始</strong>
+              <p>定义题材、角色与画面风格，让 Agent 为你组织接下来发生的一切。</p>
+              <div><span>创建新故事</span><span>开始设置 <ArrowRightIcon size={15} /></span></div>
+            </div>
+          </button>
+        </div>
       </section>
 
       {error && <p className="floating-error">{error}</p>}

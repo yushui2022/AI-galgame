@@ -81,6 +81,11 @@ export function App() {
           <SetupView
             key="setup"
             initial={providers}
+            onBack={
+              providers.llm.enabled && providers.image.enabled && providers.video.enabled
+                ? () => setView("home")
+                : undefined
+            }
             onComplete={(saved) => {
               setProviders(saved);
               setView("home");

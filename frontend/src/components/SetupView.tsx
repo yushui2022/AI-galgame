@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  ArrowLeft as ArrowLeftIcon,
   ArrowRight as ArrowRightIcon,
   CheckCircle as CheckCircleIcon,
   FilmSlate as FilmSlateIcon,
@@ -15,6 +16,7 @@ import type { ProviderConfig, ProviderSettings } from "../types";
 interface SetupViewProps {
   initial: ProviderSettings;
   onComplete: (settings: ProviderSettings) => void;
+  onBack?: () => void;
 }
 
 type Category = "llm" | "image" | "video";
@@ -69,10 +71,16 @@ function defaults(category: Category, kind: string): Pick<ProviderConfig, "base_
   return { base_url: "", model: category === "llm" ? "MiniCPM" : "" };
 }
 
-export function SetupView({ initial, onComplete }: SetupViewProps) {
+export function SetupView({ initial, onComplete, onBack }: SetupViewProps) {
   const [settings, setSettings] = useState<ProviderSettings>(initial);
   const [active, setActive] = useState<Category>("llm");
-  const [tests, setTests] = useState<Partial<Record<Category, "testing" | "ok" | "error">>>({});
+  const [tests, setTests] = useState<Partial<Record<Category, "testing" | "ok" | "error">>>(() => {
+    const state: Partial<Record<Category, "ok">> = {};
+    (Object.keys(META) as Category[]).forEach((category) => {
+      if (initial[category].enabled) state[category] = "ok";
+    });
+    return state;
+  });
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [embeddingTest, setEmbeddingTest] = useState<"idle" | "testing" | "ok" | "error">("idle");
@@ -147,6 +155,7 @@ export function SetupView({ initial, onComplete }: SetupViewProps) {
   const config = settings[active];
   const ActiveIcon = META[active].icon;
   const embedding = settings.embedding;
+  const activeIndex = (Object.keys(META) as Category[]).indexOf(active) + 1;
 
   const toggleEmbedding = (enabled: boolean) => {
     setSettings((current) => ({
@@ -197,22 +206,66 @@ export function SetupView({ initial, onComplete }: SetupViewProps) {
       exit={{ opacity: 0, y: -10 }}
     >
       <aside className="setup-aside">
-        <div className="brand-lockup">
-          <div className="brand-mark">A</div>
-          <span>AI Galgame</span>
+        <img
+          className="setup-backdrop-image"
+          src="/images/romance-provider-room.png"
+          alt=""
+          aria-hidden="true"
+        />
+        <div className="setup-aside-scrim" />
+        <div className="setup-aside-top">
+          <div className="brand-lockup">
+            <div className="brand-mark">A</div>
+            <div>
+              <span>AI Galgame</span>
+              <small>MODEL PIPELINE</small>
+            </div>
+          </div>
+          {onBack && (
+            <button className="setup-back-button" type="button" onClick={onBack}>
+              <ArrowLeftIcon size={18} />返回故事库
+            </button>
+          )}
         </div>
         <div className="setup-copy">
-          <p className="eyebrow">第一次启动</p>
+          <p className="eyebrow">Model orchestration</p>
           <h1>把你的模型接入故事。</h1>
-          <p>所有密钥只保存在这台电脑的后端数据目录，不会进入浏览器存储或 Git。</p>
+          <p>让剧情、场景图与动态镜头各自使用最合适的模型。你保留选择权，系统负责把它们编排成同一段体验。</p>
+        </div>
+        <div className="setup-pipeline-rail" aria-label="模型管线">
+          {(Object.keys(META) as Category[]).map((category, index) => {
+            const Icon = META[category].icon;
+            const state = tests[category];
+            return (
+              <div
+                className={`pipeline-step ${active === category ? "active" : ""} ${state === "ok" ? "complete" : ""}`}
+                key={category}
+              >
+                <span>0{index + 1}</span>
+                <Icon size={19} />
+                <div>
+                  <strong>{META[category].title}</strong>
+                  <small>{state === "ok" ? "连接可用" : active === category ? "正在配置" : "等待配置"}</small>
+                </div>
+                {state === "ok" && <CheckCircleIcon size={18} weight="fill" />}
+              </div>
+            );
+          })}
         </div>
         <div className="privacy-note">
           <KeyIcon size={22} weight="duotone" />
-          <span>本地保存，接口响应始终脱敏</span>
+          <span>密钥仅写入本地后端，浏览器与日志始终脱敏</span>
         </div>
       </aside>
 
       <div className="setup-main">
+        <header className="setup-main-header">
+          <div>
+            <span>Configuration</span>
+            <strong>0{activeIndex} / 03</strong>
+          </div>
+          <p>连接状态会在保存后立即校验</p>
+        </header>
         <nav className="setup-tabs" aria-label="供应商配置">
           {(Object.keys(META) as Category[]).map((category) => {
             const Icon = META[category].icon;
@@ -232,62 +285,64 @@ export function SetupView({ initial, onComplete }: SetupViewProps) {
           })}
         </nav>
 
-        <div className="provider-form">
+        <section className="provider-form provider-panel">
           <div className="form-heading">
-            <ActiveIcon size={30} weight="duotone" />
+            <span className="provider-icon"><ActiveIcon size={27} weight="duotone" /></span>
             <div>
               <h2>{META[active].title}</h2>
               <p>{META[active].description}</p>
             </div>
           </div>
 
-          <label>
-            <span>供应商</span>
-            <select
-              value={config.kind}
-              onChange={(event) => {
-                const kind = event.target.value;
-                update(active, { kind, ...defaults(active, kind) });
-              }}
-            >
-              {META[active].kinds.map((kind) => (
-                <option key={kind.value} value={kind.value}>
-                  {kind.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="provider-fields-grid">
+            <label className="field-full">
+              <span>供应商</span>
+              <select
+                value={config.kind}
+                onChange={(event) => {
+                  const kind = event.target.value;
+                  update(active, { kind, ...defaults(active, kind) });
+                }}
+              >
+                {META[active].kinds.map((kind) => (
+                  <option key={kind.value} value={kind.value}>
+                    {kind.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <label>
-            <span>API 地址</span>
-            <input
-              value={config.base_url}
-              onChange={(event) => update(active, { base_url: event.target.value })}
-              placeholder="https://..."
-              autoComplete="url"
-            />
-          </label>
+            <label>
+              <span>API 地址</span>
+              <input
+                value={config.base_url}
+                onChange={(event) => update(active, { base_url: event.target.value })}
+                placeholder="https://..."
+                autoComplete="url"
+              />
+            </label>
 
-          <label>
-            <span>模型或 Endpoint ID</span>
-            <input
-              value={config.model}
-              onChange={(event) => update(active, { model: event.target.value })}
-              placeholder={active === "video" ? "填写当前可用的视频模型 ID" : "模型名称"}
-              autoComplete="off"
-            />
-          </label>
+            <label>
+              <span>模型或 Endpoint ID</span>
+              <input
+                value={config.model}
+                onChange={(event) => update(active, { model: event.target.value })}
+                placeholder={active === "video" ? "填写当前可用的视频模型 ID" : "模型名称"}
+                autoComplete="off"
+              />
+            </label>
 
-          <label>
-            <span>API Key</span>
-            <input
-              type="password"
-              value={config.api_key}
-              onChange={(event) => update(active, { api_key: event.target.value })}
-              placeholder="只保存在本机"
-              autoComplete="new-password"
-            />
-          </label>
+            <label className="field-full">
+              <span>API Key</span>
+              <input
+                type="password"
+                value={config.api_key}
+                onChange={(event) => update(active, { api_key: event.target.value })}
+                placeholder="只保存在本机"
+                autoComplete="new-password"
+              />
+            </label>
+          </div>
 
           {active === "image" && config.kind === "ark" && (
             <div className="provider-hint">
@@ -354,7 +409,8 @@ export function SetupView({ initial, onComplete }: SetupViewProps) {
             </details>
           )}
 
-          <div className="form-actions">
+          <div className="form-actions provider-actions">
+            <span className="provider-save-note"><i />更改会保存到本机私密配置</span>
             <button
               className="button secondary"
               type="button"
@@ -370,7 +426,7 @@ export function SetupView({ initial, onComplete }: SetupViewProps) {
           </div>
 
           {message && <p className={tests[active] === "error" || embeddingTest === "error" ? "inline-message error" : "inline-message"}>{message}</p>}
-        </div>
+        </section>
       </div>
     </motion.section>
   );
