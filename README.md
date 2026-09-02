@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/ai-galgame-hero.png" alt="AI Galgame — 故事会记住你的选择" width="100%" />
+</p>
+
 <div align="center">
 
 # AI Galgame
