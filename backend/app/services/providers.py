@@ -193,6 +193,64 @@ class OpenAIImageProvider(ImageProvider):
             raise ProviderError("请完整填写图片服务地址、模型和密钥")
 
 
+class ArkImageProvider(ImageProvider):
+    """Volcengine Ark Seedream image generation API."""
+
+    def __init__(self, config: ProviderConfig) -> None:
+        self.config = config
+
+    async def submit(self, spec: ImageSpec) -> ProviderJob:
+        payload: dict[str, Any] = {
+            "model": self.config.model,
+            "prompt": spec.prompt,
+            "size": self.config.extra.get("size", "2K"),
+            "sequential_image_generation": self.config.extra.get(
+                "sequential_image_generation", "disabled"
+            ),
+            "stream": False,
+            "response_format": "url",
+            "watermark": bool(self.config.extra.get("watermark", False)),
+        }
+        if spec.character_reference_urls:
+            payload["image"] = spec.character_reference_urls[:3]
+
+        async with httpx.AsyncClient(timeout=300) as client:
+            response = await client.post(
+                _join(self.config.base_url, "/images/generations"),
+                headers=_auth_headers(self.config),
+                json=payload,
+            )
+        if response.is_error:
+            raise ProviderError(
+                f"火山方舟图片请求失败 ({response.status_code}): {response.text[:500]}"
+            )
+
+        body = response.json()
+        items = body.get("data") or []
+        if not items:
+            error = body.get("error") or {}
+            detail = error.get("message") if isinstance(error, dict) else str(error)
+            raise ProviderError(detail or "火山方舟没有返回图片")
+        item = items[0]
+        if item.get("url"):
+            result_url = item["url"]
+        elif item.get("b64_json"):
+            result_url = f"data:image/png;base64,{item['b64_json']}"
+        else:
+            raise ProviderError("火山方舟图片响应中没有 URL 或 base64")
+        return ProviderJob(
+            provider_task_id=str(body.get("created") or uuid.uuid4()),
+            status="succeeded",
+            progress=1,
+            result_url=result_url,
+            metadata={"model": body.get("model"), "size": item.get("size")},
+        )
+
+    async def test(self) -> None:
+        if not self.config.base_url or not self.config.model or not self.config.api_key:
+            raise ProviderError("请填写火山方舟地址、Seedream 模型 ID 和 API Key")
+
+
 class MiniMaxImageProvider(ImageProvider):
     def __init__(self, config: ProviderConfig) -> None:
         self.config = config
@@ -457,6 +515,8 @@ def create_text_provider(config: ProviderConfig) -> TextProvider:
 def create_image_provider(config: ProviderConfig) -> ImageProvider:
     if config.kind == "mock":
         return MockImageProvider()
+    if config.kind == "ark":
+        return ArkImageProvider(config)
     if config.kind == "minimax":
         return MiniMaxImageProvider(config)
     if config.kind == "openai":

@@ -37,6 +37,7 @@ const META: Record<
     description: "每回合先生成16:9场景图，同时作为视频的首帧。",
     icon: ImageIcon,
     kinds: [
+      { value: "ark", label: "火山方舟 / Seedream" },
       { value: "minimax", label: "MiniMax Image" },
       { value: "openai", label: "OpenAI Images-compatible" }
     ]
@@ -46,13 +47,16 @@ const META: Record<
     description: "把本回合场景图转成约6秒连续镜头。",
     icon: FilmSlateIcon,
     kinds: [
-      { value: "seedance", label: "Seedance 2.0" },
+      { value: "seedance", label: "火山方舟 / Seedance" },
       { value: "minimax", label: "MiniMax Hailuo" }
     ]
   }
 };
 
 function defaults(category: Category, kind: string): Pick<ProviderConfig, "base_url" | "model"> {
+  if (category === "image" && kind === "ark") {
+    return { base_url: "https://ark.cn-beijing.volces.com/api/v3", model: "" };
+  }
   if (category === "image" && kind === "minimax") {
     return { base_url: "https://api.minimax.cn", model: "image-01" };
   }
@@ -84,6 +88,24 @@ export function SetupView({ initial, onComplete }: SetupViewProps) {
       ...current,
       [category]: { ...current[category], ...patch }
     }));
+  };
+
+  const copyArkCredentials = (target: "image" | "video") => {
+    const source = target === "image" ? settings.video : settings.image;
+    const targetKind = target === "image" ? "ark" : "seedance";
+    setSettings((current) => ({
+      ...current,
+      [target]: {
+        ...current[target],
+        kind: targetKind,
+        base_url: source.base_url || "https://ark.cn-beijing.volces.com/api/v3",
+        api_key: source.api_key
+      }
+    }));
+    setTests((current) => ({ ...current, [target]: undefined }));
+    setMessage(
+      `已把方舟地址和 API Key 复制到${target === "image" ? "图片" : "视频"}配置；模型 ID 需要单独填写。`
+    );
   };
 
   const persistAndTest = async (category: Category) => {
@@ -266,6 +288,30 @@ export function SetupView({ initial, onComplete }: SetupViewProps) {
               autoComplete="new-password"
             />
           </label>
+
+          {active === "image" && config.kind === "ark" && (
+            <div className="provider-hint">
+              <div>
+                <strong>方舟媒体凭证可以共用</strong>
+                <span>复用视频配置的地址和 API Key；Seedream 图片模型 ID 仍单独填写。</span>
+              </div>
+              <button className="button ghost" type="button" onClick={() => copyArkCredentials("image")}>
+                从视频配置复制
+              </button>
+            </div>
+          )}
+
+          {active === "video" && config.kind === "seedance" && (
+            <div className="provider-hint">
+              <div>
+                <strong>方舟媒体凭证可以共用</strong>
+                <span>复用图片配置的地址和 API Key；Seedance 视频模型 ID 仍单独填写。</span>
+              </div>
+              <button className="button ghost" type="button" onClick={() => copyArkCredentials("video")}>
+                从图片配置复制
+              </button>
+            </div>
+          )}
 
           {active === "llm" && (
             <details className="embedding-settings">

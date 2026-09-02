@@ -7,8 +7,13 @@ import pytest
 from app.schemas import ImageSpec, ProviderConfig, VideoSpec
 from app.services import providers as provider_module
 from app.services import storage as storage_module
-from app.services.providers import MiniMaxImageProvider, ProviderError, SeedanceVideoProvider
-from fastapi import FastAPI, Response
+from app.services.providers import (
+    ArkImageProvider,
+    MiniMaxImageProvider,
+    ProviderError,
+    SeedanceVideoProvider,
+)
+from fastapi import FastAPI, Request, Response
 
 
 @pytest.mark.asyncio
@@ -21,6 +26,17 @@ async def test_http_provider_submit_poll_failure_timeout_and_download(
     @fake.post("/v1/image_generation")
     async def generate_image():  # type: ignore[no-untyped-def]
         return {"id": "image-task", "data": {"image_urls": ["http://fake/files/frame.png"]}}
+
+    ark_requests: list[dict] = []
+
+    @fake.post("/images/generations")
+    async def generate_ark_image(request: Request):  # type: ignore[no-untyped-def]
+        ark_requests.append(await request.json())
+        return {
+            "model": "doubao-seedream-test",
+            "created": 123,
+            "data": [{"url": "http://fake/files/frame.png", "size": "2560x1440"}],
+        }
 
     @fake.get("/files/frame.png")
     async def image_file():  # type: ignore[no-untyped-def]
@@ -81,6 +97,41 @@ async def test_http_provider_submit_poll_failure_timeout_and_download(
     assert path.read_bytes() == b"fake-png"
     assert digest
     assert size == 8
+
+    ark_provider = ArkImageProvider(
+        ProviderConfig(
+            kind="ark",
+            base_url="http://fake",
+            api_key="key",
+            model="doubao-seedream-test",
+            extra={"size": "2K"},
+        )
+    )
+    ark_job = await ark_provider.submit(
+        ImageSpec(
+            prompt="雨夜，16:9",
+            character_reference_urls=["data:image/png;base64,ZmFrZQ=="],
+            setting="校园",
+            composition="远景",
+            lighting="月光",
+            mood="悬疑",
+            art_style="动画",
+        )
+    )
+    assert ark_job.status == "succeeded"
+    assert ark_job.result_url == "http://fake/files/frame.png"
+    assert ark_requests == [
+        {
+            "model": "doubao-seedream-test",
+            "prompt": "雨夜，16:9",
+            "size": "2K",
+            "sequential_image_generation": "disabled",
+            "stream": False,
+            "response_format": "url",
+            "watermark": False,
+            "image": ["data:image/png;base64,ZmFrZQ=="],
+        }
+    ]
 
     video_provider = SeedanceVideoProvider(
         ProviderConfig(

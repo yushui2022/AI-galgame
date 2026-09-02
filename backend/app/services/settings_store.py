@@ -25,6 +25,20 @@ class ProviderSettingsStore:
     def save(self, incoming: ProviderSettings) -> ProviderSettings:
         with self._lock:
             current = self._load_unlocked()
+            share_to_image = (
+                incoming.image.kind == "ark"
+                and incoming.video.kind == "seedance"
+                and incoming.image.api_key == MASK
+                and not current.image.api_key
+                and bool(current.video.api_key)
+            )
+            share_to_video = (
+                incoming.image.kind == "ark"
+                and incoming.video.kind == "seedance"
+                and incoming.video.api_key == MASK
+                and not current.video.api_key
+                and bool(current.image.api_key)
+            )
             merged = ProviderSettings(
                 llm=self._merge_secret(current.llm, incoming.llm),
                 image=self._merge_secret(current.image, incoming.image),
@@ -35,6 +49,10 @@ class ProviderSettingsStore:
                     else incoming.embedding
                 ),
             )
+            if share_to_image:
+                merged.image.api_key = current.video.api_key
+            if share_to_video:
+                merged.video.api_key = current.image.api_key
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self.path.write_text(
                 json.dumps(merged.model_dump(), ensure_ascii=False, indent=2),

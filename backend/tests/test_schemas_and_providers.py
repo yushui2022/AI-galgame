@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from app.schemas import ImageSpec, ProviderConfig, TurnResult, VideoSpec
 from app.services.providers import (
+    ArkImageProvider,
     MockImageProvider,
     MockTextProvider,
     MockVideoProvider,
@@ -88,3 +89,15 @@ def test_unknown_provider_is_rejected() -> None:
     config = ProviderConfig(kind="unknown", base_url="", model="unknown")
     with pytest.raises(ProviderError):
         create_image_provider(config)
+
+
+def test_ark_image_provider_factory() -> None:
+    provider = create_image_provider(
+        ProviderConfig(
+            kind="ark",
+            base_url="https://ark.cn-beijing.volces.com/api/v3",
+            api_key="test",
+            model="doubao-seedream-test",
+        )
+    )
+    assert isinstance(provider, ArkImageProvider)

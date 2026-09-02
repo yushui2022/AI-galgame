@@ -398,6 +398,37 @@ textarea::placeholder {
   padding-top: 8px;
 }
 
+.provider-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(157, 164, 255, 0.2);
+  border-radius: var(--control-radius);
+  background: rgba(157, 164, 255, 0.06);
+}
+
+.provider-hint > div {
+  display: grid;
+  gap: 4px;
+}
+
+.provider-hint strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.provider-hint span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.provider-hint .button {
+  flex: 0 0 auto;
+}
+
 .inline-message {
   margin: 0;
   padding: 12px 14px;

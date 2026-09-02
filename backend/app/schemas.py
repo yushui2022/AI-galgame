@@ -23,7 +23,11 @@ class ProviderSettings(BaseModel):
     )
     image: ProviderConfig = Field(
         default_factory=lambda: ProviderConfig(
-            kind="minimax", base_url="https://api.minimax.cn", model="image-01", enabled=False
+            kind="ark",
+            base_url="https://ark.cn-beijing.volces.com/api/v3",
+            model="",
+            enabled=False,
+            extra={"size": "2K"},
         )
     )
     video: ProviderConfig = Field(

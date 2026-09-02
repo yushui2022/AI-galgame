@@ -8,8 +8,8 @@
 
 - React + TypeScript 的中文游戏界面，FastAPI 统一托管生产构建
 - MiniCPM 与其他 OpenAI-compatible LLM
-- MiniMax 图片和 OpenAI Images-compatible 图片接口
-- Seedance 2.0 与 MiniMax Hailuo 图生视频任务
+- 火山方舟 Seedream、MiniMax 与 OpenAI Images-compatible 图片接口
+- 火山方舟 Seedance 与 MiniMax Hailuo 图生视频任务
 - SQLite FTS5、滚动摘要、世界书、最近剧情和可选 Embeddings 混排
 - 不可变回合节点、任意历史节点分叉、分支重命名、归档、恢复与显式清理
 - 可编辑玩家画像，画像跨分支共享，剧情事实按祖先链隔离
@@ -62,13 +62,14 @@ $env:AI_GALGAME_DATA_DIR = "G:\Data\AI-galgame"
 | 能力 | 适配器 | 需要填写 |
 | --- | --- | --- |
 | 剧情 | MiniCPM / OpenAI-compatible | API 地址、模型名、API Key |
+| 图片 | 火山方舟 Seedream | `https://ark.cn-beijing.volces.com/api/v3`、图片模型或 Endpoint ID、API Key |
 | 图片 | MiniMax Image | `https://api.minimax.cn`、当前可用模型名、API Key |
 | 图片 | OpenAI Images-compatible | API 地址、模型名、API Key |
-| 视频 | Seedance 2.0 | `https://ark.cn-beijing.volces.com/api/v3`、Endpoint 或模型 ID、API Key |
+| 视频 | 火山方舟 Seedance | `https://ark.cn-beijing.volces.com/api/v3`、视频模型或 Endpoint ID、API Key |
 | 视频 | MiniMax Hailuo | `https://api.minimax.cn`、当前可用模型名、API Key |
 | 可选记忆 | OpenAI-compatible Embeddings | API 地址、向量模型名、API Key |
 
-模型名称和服务价格会变化，因此模型名只保存在本地配置中，不作为永久默认值写死。可参考 [火山方舟内容生成任务文档](https://api.volcengine.com/api-docs/view?action=CreateContentsGenerationsTasks&serviceCode=ark&version=2024-01-01) 与 [MiniMax 视频生成文档](https://platform.minimaxi.com/docs/guides/video-generation)。
+模型名称和服务价格会变化，因此模型名只保存在本地配置中，不作为永久默认值写死。方舟图片和视频可共用同一 API Key，但模型 ID 需要分别填写；远程媒体生成后会立即下载到本地。可参考 [火山方舟图片生成文档](https://api.volcengine.com/api-docs/view?action=ImageGenerations&serviceCode=ark&version=2024-01-01)、[火山方舟视频生成文档](https://api.volcengine.com/api-docs/view?action=CreateContentsGenerationsTasks&serviceCode=ark&version=2024-01-01) 与 [MiniMax 视频生成文档](https://platform.minimaxi.com/docs/guides/video-generation)。
 
 密钥只写入 `AI_GALGAME_DATA_DIR/settings.local.json`。接口响应会脱敏，前端不使用 LocalStorage 保存密钥，日志也不输出配置对象。
 
