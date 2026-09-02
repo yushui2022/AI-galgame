@@ -73,12 +73,12 @@ def test_state_delta_and_thread_limits() -> None:
     updated = apply_thread_updates(
         state,
         [
-            {"id": "first", "action": "open", "summary": "第一条新线索"},
+            {"id": "first", "action": "open", "summary": "第一条新事件"},
             {"id": "second", "action": "open", "summary": "本回合不应再新增"},
             {
-                "id": "missing-senior-message",
+                "id": "spring-photo-exhibition",
                 "action": "advance",
-                "summary": "短信来自旧校舍的离线终端",
+                "summary": "和林澄一起确定春季展主题",
             },
         ],
     )
@@ -86,7 +86,7 @@ def test_state_delta_and_thread_limits() -> None:
     assert "first" in ids
     assert "second" not in ids
     advanced = next(
-        item for item in updated["open_threads"] if item["id"] == "missing-senior-message"
+        item for item in updated["open_threads"] if item["id"] == "spring-photo-exhibition"
     )
     assert advanced["progress"] == 25
 

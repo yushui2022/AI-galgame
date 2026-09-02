@@ -511,7 +511,7 @@ textarea::placeholder {
   position: relative;
   min-height: 360px;
   overflow: hidden;
-  background: #182229;
+  background: #b9d3dc;
 }
 
 .template-visual::before,
@@ -526,9 +526,9 @@ textarea::placeholder {
   width: 38%;
   height: 82%;
   border-radius: 48% 48% 0 0;
-  background: #2d373d;
+  background: #778995;
   filter: blur(1px);
-  opacity: 0.88;
+  opacity: 0.78;
 }
 
 .template-visual::after {
@@ -537,38 +537,45 @@ textarea::placeholder {
   width: 24%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #242b30;
-  box-shadow: inset 24px -6px 30px rgba(114, 131, 141, 0.23);
+  background: #667b88;
+  box-shadow: inset 24px -6px 30px rgba(241, 209, 213, 0.3);
 }
 
-.rain-line {
+.spring-petal {
   position: absolute;
   z-index: 1;
-  width: 1px;
-  height: 140%;
-  background: rgba(213, 227, 229, 0.28);
-  transform: rotate(14deg);
+  width: 18px;
+  height: 10px;
+  border-radius: 90% 10% 90% 10%;
+  background: rgba(255, 224, 229, 0.9);
+  box-shadow: 0 5px 18px rgba(129, 82, 95, 0.14);
+  transform: rotate(24deg);
 }
 
-.rain-line.one {
-  left: 25%;
-  top: -20%;
-}
-
-.rain-line.two {
-  left: 52%;
-  top: -12%;
-}
-
-.window-light {
-  position: absolute;
-  bottom: 30%;
+.spring-petal.one {
   left: 18%;
-  width: 128px;
-  height: 74px;
-  border: 1px solid rgba(239, 191, 143, 0.34);
-  background: rgba(239, 191, 143, 0.14);
-  box-shadow: 0 0 70px rgba(239, 191, 143, 0.12);
+  top: 22%;
+}
+
+.spring-petal.two {
+  left: 48%;
+  top: 42%;
+}
+
+.spring-petal.three {
+  right: 16%;
+  top: 18%;
+}
+
+.spring-light {
+  position: absolute;
+  top: 16%;
+  left: 14%;
+  width: 112px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255, 241, 195, 0.72);
+  box-shadow: 0 0 90px rgba(255, 231, 164, 0.72);
 }
 
 .template-title {
@@ -1509,8 +1516,16 @@ textarea::placeholder {
     animation: shimmer 2.2s infinite linear;
   }
 
-  .rain-line {
-    animation: rain 2.8s infinite linear;
+  .spring-petal {
+    animation: petal-drift 4.8s infinite ease-in-out;
+  }
+
+  .spring-petal.two {
+    animation-delay: -1.8s;
+  }
+
+  .spring-petal.three {
+    animation-delay: -3.2s;
   }
 
   @keyframes shimmer {
@@ -1518,9 +1533,9 @@ textarea::placeholder {
     50% { opacity: 1; }
   }
 
-  @keyframes rain {
-    from { transform: translateY(-12%) rotate(14deg); }
-    to { transform: translateY(24%) rotate(14deg); }
+  @keyframes petal-drift {
+    0%, 100% { transform: translate3d(0, -8px, 0) rotate(18deg); }
+    50% { transform: translate3d(28px, 22px, 0) rotate(68deg); }
   }
 }
 

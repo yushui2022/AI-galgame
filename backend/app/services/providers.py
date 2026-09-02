@@ -36,9 +36,7 @@ async def _test_ark_connection(config: ProviderConfig) -> None:
     async with httpx.AsyncClient(timeout=20) as client:
         response = await client.get(ping_url, headers=_auth_headers(config))
     if response.is_error:
-        raise ProviderError(
-            f"火山方舟连接失败 ({response.status_code}): {response.text[:500]}"
-        )
+        raise ProviderError(f"火山方舟连接失败 ({response.status_code}): {response.text[:500]}")
 
 
 def _extract_json(text: str) -> dict[str, Any]:
@@ -441,39 +439,47 @@ class MockTextProvider(TextProvider):
             turn_number = len(re.findall("回合", user_prompt)) + 1
             return TurnResult.model_validate(
                 {
-                    "scene": "雨夜的旧校舍走廊",
-                    "narrative": f"雨水敲打着窗框。第{turn_number}次回声之后，储物柜里亮起了一点微光。",
+                    "scene": "放学后的樱花步道",
+                    "narrative": f"夕阳落在樱花步道上。第{turn_number}次并肩走过这里时，林澄放慢脚步，把相机里刚拍下的照片递给你看。",
                     "dialogue": [
                         {
                             "speaker": "林澄",
-                            "text": "你也听见了吗？这次回声来自墙里面。",
-                            "emotion": "紧张",
+                            "text": "这一张有你喜欢的感觉吗？我想把它放进春季展。",
+                            "emotion": "期待",
                         }
                     ],
                     "choices": [
-                        {"id": "inspect", "text": "检查发光的储物柜", "tags": ["调查", "勇敢"]},
-                        {"id": "comfort", "text": "先安慰神色不安的林澄", "tags": ["关系", "温柔"]},
+                        {
+                            "id": "choose_photo",
+                            "text": "陪林澄一起挑选春季展的照片",
+                            "tags": ["陪伴", "温柔"],
+                        },
+                        {
+                            "id": "invite_walk",
+                            "text": "邀请林澄拍完后一起绕操场散步",
+                            "tags": ["主动", "浪漫"],
+                        },
                     ],
-                    "state_delta": {"location": "旧校舍走廊", "time": "雨夜"},
+                    "state_delta": {"location": "樱花步道", "time": "放学后"},
                     "thread_updates": [
                         {
-                            "id": "locker-light",
+                            "id": "spring-photo-exhibition",
                             "action": "advance",
-                            "summary": "储物柜中的异常微光再次出现",
+                            "summary": "和林澄一起准备摄影社春季展",
                         }
                     ],
                     "memory_candidates": [
                         {
-                            "content": "林澄害怕墙内传来的回声",
+                            "content": "林澄邀请玩家一起挑选春季展照片",
                             "importance": 0.7,
-                            "tags": ["林澄", "回声"],
+                            "tags": ["林澄", "摄影社", "春季展"],
                         }
                     ],
                     "media_brief": {
-                        "visual_summary": "雨夜旧校舍，黑发少女站在发出蓝光的储物柜旁",
-                        "motion": "少女回头，雨水沿玻璃滑落，柜门轻微震动",
-                        "camera": "slow push-in medium shot",
-                        "mood": "mysterious, tender, suspenseful",
+                        "visual_summary": "放学后的校园樱花步道，黑发少女林澄拿着相机向第一视角展示照片，夕阳温暖",
+                        "motion": "少女轻轻递出相机，花瓣掠过发梢，她抬眼露出期待的笑",
+                        "camera": "gentle first-person medium shot",
+                        "mood": "warm, youthful, romantic",
                         "visible_characters": ["林澄"],
                     },
                 }

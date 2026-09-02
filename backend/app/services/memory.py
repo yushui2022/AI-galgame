@@ -21,18 +21,18 @@ from app.models import (
 from app.schemas import MemoryCandidate, PlayerProfileData
 
 DEFAULT_STATE: dict[str, Any] = {
-    "location": "教学楼门厅",
-    "time": "放学后的雨夜",
+    "location": "校门口的樱花树下",
+    "time": "新学期清晨",
     "character_status": {},
-    "relationships": {},
+    "relationships": {"林澄": 0, "夏栀": 0, "苏晚": 0},
     "clues": [],
     "inventory": [],
     "world_flags": {},
     "promises": [],
     "open_threads": [
         {
-            "id": "missing-senior-message",
-            "summary": "失踪学姐为何还能发来短信",
+            "id": "spring-photo-exhibition",
+            "summary": "帮助林澄准备摄影社春季展",
             "status": "open",
             "progress": 0,
         }

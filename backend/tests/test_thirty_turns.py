@@ -21,7 +21,9 @@ async def test_thirty_turns_with_periodic_forks(
     store.save(ProviderSettings(llm=mock, image=mock, video=mock))
     monkeypatch.setattr("app.services.orchestrator.provider_settings_store", store)
 
-    game = Game(title="旧校舍", premise="雨夜校园谜案", world_rules="事实必须连续")
+    game = Game(
+        title="樱花落下之前", premise="新学期的校园恋爱故事", world_rules="人物关系必须连续"
+    )
     db.add(game)
     db.flush()
     snapshot = StateSnapshot(game_id=game.id, data=deepcopy(DEFAULT_STATE))
@@ -31,11 +33,11 @@ async def test_thirty_turns_with_periodic_forks(
         game_id=game.id,
         state_snapshot_id=snapshot.id,
         turn_index=0,
-        scene="门厅",
-        narrative="收到失踪学姐的短信。",
+        scene="校门口的樱花树下",
+        narrative="新学期第一天，林澄邀请你一起去教室。",
         choices=[
-            {"id": "inspect", "text": "继续调查", "tags": ["调查"]},
-            {"id": "comfort", "text": "安慰林澄", "tags": ["关系"]},
+            {"id": "choose_photo", "text": "陪林澄一起挑选春季展的照片", "tags": ["陪伴"]},
+            {"id": "invite_walk", "text": "邀请林澄一起散步", "tags": ["主动"]},
         ],
         unlocked=True,
     )
@@ -54,8 +56,8 @@ async def test_thirty_turns_with_periodic_forks(
             branch,
             TurnRequest(
                 input_type="suggested",
-                text="继续调查",
-                choice_id="inspect",
+                text="陪林澄一起挑选春季展的照片",
+                choice_id="choose_photo",
                 expected_head_turn_id=current_id,
             ),
         )
@@ -77,4 +79,4 @@ async def test_thirty_turns_with_periodic_forks(
     summary = db.scalar(select(RollingSummary).where(RollingSummary.branch_id == branch.id))
     assert summary and summary.turn_count == 30
     profile = db.get(PlayerProfile, "default")
-    assert profile and profile.choice_tendencies["调查"] == pytest.approx(3.0)
+    assert profile and profile.choice_tendencies["陪伴"] == pytest.approx(3.0)

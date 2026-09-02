@@ -64,11 +64,11 @@ class CharacterRead(CharacterInput):
 
 class GameCreate(BaseModel):
     mode: Literal["template", "custom"] = "template"
-    title: str = "旧校舍的第七码"
-    genre: str = "校园悬疑恋爱"
-    premise: str = "转学生在雨夜收到一条来自失踪学姐的短信，并与总在旧校舍出现的少女共同追查真相。"
-    world_rules: str = "现代校园，超自然现象必须留下可验证线索，所有内容保持全年龄。"
-    art_style: str = "日系动画电影感，雨夜校园，低饱和蓝紫色，温暖人物光"
+    title: str = "樱花落下之前"
+    genre: str = "校园恋爱"
+    premise: str = "新学期开始，你在日常相处、社团活动和校园文化祭的准备中，与三位性格不同的同学逐渐靠近。你的每个选择都会改变彼此的关系与共同回忆。"
+    world_rules: str = "现代高中校园，以日常相处、社团活动、节日和恋爱关系发展为主；不主动引入悬疑、犯罪、失踪、超自然或阴谋；所有内容保持全年龄。"
+    art_style: str = "日系青春恋爱动画，春日校园，樱花与暖阳，清透明亮，柔和粉蓝色调"
     characters: list[CharacterInput] = Field(default_factory=list, max_length=3)
 
 
@@ -128,7 +128,7 @@ class MediaBrief(BaseModel):
     visual_summary: str
     motion: str
     camera: str = "medium shot, slow cinematic movement"
-    mood: str = "mysterious and tender"
+    mood: str = "warm, youthful and romantic"
     visible_characters: list[str] = Field(default_factory=list, max_length=3)
 
 

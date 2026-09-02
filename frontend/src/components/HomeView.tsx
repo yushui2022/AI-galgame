@@ -22,10 +22,10 @@ interface HomeViewProps {
 const CUSTOM_DEFAULT: GameCreatePayload = {
   mode: "custom",
   title: "",
-  genre: "校园悬疑恋爱",
+  genre: "校园恋爱",
   premise: "",
-  world_rules: "现代背景，世界规律稳定，所有关键谜题必须留下可验证线索，全年龄内容。",
-  art_style: "日系动画电影感，细腻光影，16:9构图",
+  world_rules: "现代高中校园，以日常相处、社团活动、节日和恋爱关系发展为主；不主动引入悬疑、犯罪、失踪、超自然或阴谋；全年龄内容。",
+  art_style: "日系青春恋爱动画，春日校园，樱花与暖阳，清透明亮，柔和粉蓝色调，16:9构图",
   characters: []
 };
 
@@ -58,8 +58,8 @@ export function HomeView({
         await api.createGame({
           ...CUSTOM_DEFAULT,
           mode: "template",
-          title: "旧校舍的第七码",
-          premise: "转学生在雨夜收到一条来自失踪学姐的短信，并与总在旧校舍出现的少女共同追查真相。"
+          title: "樱花落下之前",
+          premise: "新学期开始，你在日常相处、社团活动和校园文化祭的准备中，与三位性格不同的同学逐渐靠近。你的每个选择都会改变彼此的关系与共同回忆。"
         })
       );
     } catch (reason) {
@@ -119,23 +119,24 @@ export function HomeView({
       <div className="library-intro">
         <p className="eyebrow">你的故事库</p>
         <h1>故事会记住你的选择。</h1>
-        <p>选择一个旧世界继续，或者让模型从一个念头开始创造新的校园传说。</p>
+        <p>选择一个旧故事继续，或者从一次心动开始创造新的校园回忆。</p>
       </div>
 
       <div className="starter-grid">
         <article className="template-feature">
           <div className="template-visual" aria-hidden="true">
-            <span className="rain-line one" />
-            <span className="rain-line two" />
-            <span className="window-light" />
-            <div className="template-title">第七码</div>
+            <span className="spring-petal one" />
+            <span className="spring-petal two" />
+            <span className="spring-petal three" />
+            <span className="spring-light" />
+            <div className="template-title">春日心动</div>
           </div>
           <div className="template-copy">
-            <span>校园悬疑恋爱</span>
-            <h2>旧校舍的第七码</h2>
-            <p>失踪一年的学姐发来短信。雨夜、旧校舍与一名隐瞒真相的少女正在等你。</p>
+            <span>校园恋爱</span>
+            <h2>樱花落下之前</h2>
+            <p>从新学期的第一声早安开始，在社团、放学路和文化祭里，与喜欢的人慢慢靠近。</p>
             <button className="button primary" type="button" disabled={creating} onClick={() => void createTemplate()}>
-              {creating ? "正在创建" : "进入雨夜"}
+              {creating ? "正在创建" : "开始心动"}
               <ArrowRightIcon size={18} />
             </button>
           </div>
@@ -156,7 +157,7 @@ export function HomeView({
         {games.length === 0 ? (
           <div className="empty-state">
             <BookOpenTextIcon size={34} weight="light" />
-            <p>还没有保存的故事。上面的雨夜可以成为第一段记忆。</p>
+            <p>还没有保存的故事。就从樱花树下的第一次相遇开始吧。</p>
           </div>
         ) : (
           <div className="game-list">
@@ -194,7 +195,7 @@ export function HomeView({
             <header>
               <div>
                 <h2>创造一个新世界</h2>
-                <p>先给模型清晰的冲突和规则，角色会在游玩中逐渐生长。</p>
+                <p>先给模型清晰的关系、舞台和规则，角色会在游玩中逐渐生长。</p>
               </div>
               <button className="icon-button" type="button" onClick={() => setCustomOpen(false)} aria-label="关闭">
                 <XIcon size={20} />
@@ -278,7 +279,7 @@ export function HomeView({
                       </label>
                     </div>
                     <label>
-                      <span>背景与秘密</span>
+                      <span>背景与经历</span>
                       <textarea rows={2} value={character.background} onChange={(event) => updateCharacter(index, { background: event.target.value })} />
                     </label>
                   </div>

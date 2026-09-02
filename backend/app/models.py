@@ -30,7 +30,7 @@ class Game(TimestampMixin, Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     title: Mapped[str] = mapped_column(String(160))
-    genre: Mapped[str] = mapped_column(String(120), default="校园悬疑恋爱")
+    genre: Mapped[str] = mapped_column(String(120), default="校园恋爱")
     premise: Mapped[str] = mapped_column(Text)
     world_rules: Mapped[str] = mapped_column(Text, default="")
     art_style: Mapped[str] = mapped_column(Text, default="日系动画电影感，细腻光影，全年龄")

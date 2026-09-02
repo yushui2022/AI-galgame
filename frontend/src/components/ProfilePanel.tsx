@@ -74,7 +74,7 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
                   <input
                     value={tagsToText(profile.preferred_themes)}
                     onChange={(event) => setProfile({ ...profile, preferred_themes: textToTags(event.target.value) })}
-                    placeholder="悬疑、慢热、治愈"
+                    placeholder="慢热、日常、治愈"
                   />
                 </label>
                 <label>

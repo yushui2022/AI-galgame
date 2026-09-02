@@ -89,12 +89,12 @@ test("示例故事支持选项、自由输入、媒体跳过、分叉和画像�
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "故事会记住你的选择。" })).toBeVisible();
 
-  await page.getByRole("button", { name: /进入雨夜/ }).click();
+  await page.getByRole("button", { name: /开始心动/ }).click();
   await expect(page.getByText("第 1 幕", { exact: true })).toBeVisible();
   await reachDecision(page);
-  await expect(page.getByRole("button", { name: /把短信内容告诉林澄/ })).toBeEnabled();
+  await expect(page.getByRole("button", { name: /接过她怀里的书/ })).toBeEnabled();
 
-  await page.getByRole("button", { name: /把短信内容告诉林澄/ }).click();
+  await page.getByRole("button", { name: /接过她怀里的书/ }).click();
   await expect(page.getByText("第 2 幕", { exact: true })).toBeVisible({ timeout: 20_000 });
   await reachDecision(page);
 
@@ -116,7 +116,7 @@ test("示例故事支持选项、自由输入、媒体跳过、分叉和画像�
 
   await page.getByRole("button", { name: "打开暂停菜单" }).click();
   await page.getByRole("button", { name: /玩家画像/ }).click();
-  await page.getByLabel("给系统的备注").fill("偏好慢热悬疑，不要快速揭晓真相");
+  await page.getByLabel("给系统的备注").fill("偏好慢热恋爱，多一些校园日常和自然相处");
   await page.getByRole("button", { name: /保存画像/ }).click();
   await expect(page.getByText("画像已保存")).toBeVisible();
 
