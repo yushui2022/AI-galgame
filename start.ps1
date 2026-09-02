@@ -3,7 +3,7 @@ $projectRoot = $PSScriptRoot
 
 foreach ($commandName in @("uv", "node", "npm")) {
     if (-not (Get-Command $commandName -ErrorAction SilentlyContinue)) {
-        throw "缺少 $commandName。请先安装 uv 与 Node.js 20 或更高版本，然后重新运行 start.ps1。"
+        throw "Missing $commandName. Install uv and Node.js 20 or newer, then run start.ps1 again."
     }
 }
 
@@ -31,7 +31,8 @@ try {
     } finally {
         Pop-Location
     }
-    Start-Process "http://$serverHost`:$serverPort"
+    $appUrl = "http://${serverHost}:${serverPort}"
+    Start-Process $appUrl
     uv run uvicorn app.main:app --app-dir backend --host $serverHost --port $serverPort
 } finally {
     Pop-Location
